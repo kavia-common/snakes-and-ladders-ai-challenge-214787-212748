@@ -8,6 +8,8 @@ import {
   nearestCellFromClick,
   saveMappingToLocalStorage,
 } from "../utils/boardMapping";
+import { BOARD_IMAGE_URL } from "../config/snakesAndLaddersConfig";
+import { autoDetectMappingFromImage } from "../utils/autoMap";
 
 /**
  * PUBLIC_INTERFACE
@@ -32,6 +34,7 @@ export default function MappingMode({ active, boardRect, getBoardElement, onSave
   const [ladders, setLadders] = useState({});
   const [jsonText, setJsonText] = useState("");
   const [status, setStatus] = useState("");
+  const [autoBusy, setAutoBusy] = useState(false);
 
   // restore existing mapping from LS on mount
   useEffect(() => {
@@ -118,7 +121,7 @@ export default function MappingMode({ active, boardRect, getBoardElement, onSave
   const captureMode = useRef("snake"); // "snake" | "ladder"
   const pendingPoint = useRef(null);   // stores first endpoint clicked
 
-  const setModeSnake = () => { captureMode.current = "snake"; setStatus("Capturing SNARES: click head then tail."); };
+  const setModeSnake = () => { captureMode.current = "snake"; setStatus("Capturing SNAKES: click head then tail."); };
   const setModeLadder = () => { captureMode.current = "ladder"; setStatus("Capturing LADDERS: click bottom then top."); };
 
   const captureSnakePoint = ({ x, y }) => {
@@ -224,11 +227,42 @@ export default function MappingMode({ active, boardRect, getBoardElement, onSave
       setSnakes(obj.snakes || {});
       setLadders(obj.ladders || {});
       setJsonText(JSON.stringify(obj, null, 2));
+      setStep(obj.corners?.length === 4 ? (obj.centers?.length === 100 ? 3 : 2) : 1);
       setStatus("Imported mapping JSON.");
     } catch (e) {
       setStatus(`Import failed: ${e.message}`);
     }
   };
+
+  const runAutoDetectRef = useRef(null);
+
+  const runAutoDetect = async () => {
+    if (autoBusy) return;
+    setAutoBusy(true);
+    setStatus("Starting auto-detect...");
+    try {
+      const res = await autoDetectMappingFromImage(BOARD_IMAGE_URL, (msg) => setStatus(msg));
+      if (!res.success) {
+        setStatus(res.message || "Auto-detect failed.");
+        setAutoBusy(false);
+        return;
+      }
+      // Save and update panel state
+      saveMappingToLocalStorage(res.mapping);
+      setCorners(res.mapping.corners || []);
+      setCenters(res.mapping.centers || []);
+      setSnakes(res.mapping.snakes || {});
+      setLadders(res.mapping.ladders || {});
+      setJsonText(JSON.stringify(res.mapping, null, 2));
+      setStep(res.mapping.corners?.length === 4 ? (res.mapping.centers?.length === 100 ? 3 : 2) : 1);
+      setStatus(`${res.message} Confidence ${(res.confidence * 100).toFixed(0)}%. Saved to localStorage.`);
+    } catch (e) {
+      setStatus(`Auto-detect error: ${e.message}`);
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+  runAutoDetectRef.current = runAutoDetect;
 
   const boardInstructions = useMemo(() => {
     if (step === 1) return "Step 1: Click four corners on the board image: bottom-left, bottom-right, top-right, top-left.";
@@ -270,6 +304,13 @@ export default function MappingMode({ active, boardRect, getBoardElement, onSave
         <button className={`btn ${captureMode.current === "ladder" ? "primary" : "secondary"}`} onClick={setModeLadder}>
           Capture Ladder
         </button>
+        <button
+          className="btn secondary"
+          onClick={() => runAutoDetectRef.current && runAutoDetectRef.current()}
+          disabled={autoBusy}
+        >
+          {autoBusy ? "Auto-detecting..." : "Auto-detect from board image"}
+        </button>
       </div>
 
       <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
@@ -306,6 +347,30 @@ export default function MappingMode({ active, boardRect, getBoardElement, onSave
             style={{ display: "none" }}
           />
         </label>
+        <button
+          className="btn secondary"
+          onClick={() => {
+            try {
+              const obj = JSON.parse(jsonText);
+              const content = buildConfigJsFromMapping(obj);
+              const blob = new Blob([content], { type: "text/javascript" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "snakesAndLaddersConfig.js";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              setStatus("Downloaded updated config file. In development, replace src/config/snakesAndLaddersConfig.js manually.");
+            } catch (e) {
+              setStatus("Invalid JSON; cannot persist to config.");
+            }
+          }}
+          title="Development mode: download a file to replace src/config/snakesAndLaddersConfig.js"
+        >
+          Persist to config (download)
+        </button>
       </div>
 
       <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{status}</div>

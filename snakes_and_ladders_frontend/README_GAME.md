@@ -16,3 +16,4 @@ Files:
 TODO:
 - Support uploading a custom board image and swapping mapping in snakesAndLaddersConfig.js.
 - Add optional click-to-highlight grid (off-board visualization) without overlaying the board.
+- Improve AutoMap heuristics and add per-component confidence visualization inside Mapping Mode (without board overlays).

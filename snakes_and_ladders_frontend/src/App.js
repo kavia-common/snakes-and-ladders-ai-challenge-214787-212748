@@ -10,6 +10,9 @@ import {
   snakes,
 } from "./config/snakesAndLaddersConfig";
 import { aiTakeTurn, chooseTaunt, rollDice } from "./services/simpleAI";
+import { BOARD_IMAGE_URL } from "./config/snakesAndLaddersConfig";
+import { saveMappingToLocalStorage } from "./utils/boardMapping";
+import { autoDetectMappingFromImage } from "./utils/autoMap";
 
 const START_CELL = 1;
 const END_CELL = 100;
@@ -38,6 +41,12 @@ function App() {
   const [mappingActive, setMappingActive] = useState(false);
   const boardRectRef = useRef(null);
   const boardElRef = useRef(null);
+
+  // Ensure variables are declared for Controls props
+  // They are set below when auto-detect is used.
+  // Initialized here to satisfy lint/no-undef.
+  // Note: We use useState for busy flag; handleAutoDetect is defined further below.
+  const [autoDetectBusy, setAutoDetectBusy] = useState(false);
 
   // Apply theme attribute
   useEffect(() => {
@@ -169,6 +178,34 @@ function App() {
     return el;
   };
 
+  // PUBLIC_INTERFACE
+  async function handleAutoDetect() {
+    if (autoDetectBusy) return;
+    setAutoDetectBusy(true);
+    const progress = (msg) => {
+      // We surface status in Mapping Mode panel when open; otherwise send as chat/system message
+      if (mappingActive) {
+        // MappingMode reads from localStorage and shows status we set via separate state in App
+      } else {
+        addMessage("SYSTEM", msg);
+      }
+    };
+    try {
+      const res = await autoDetectMappingFromImage(BOARD_IMAGE_URL, progress);
+      if (!res.success) {
+        addMessage("SYSTEM", res.message || "Auto-detect failed.");
+        setAutoDetectBusy(false);
+        return;
+      }
+      saveMappingToLocalStorage(res.mapping);
+      addMessage("SYSTEM", `Auto-mapping updated. Confidence ${(res.confidence * 100).toFixed(0)}%.`);
+    } catch (e) {
+      addMessage("SYSTEM", `Auto-detect error: ${e.message}`);
+    } finally {
+      setAutoDetectBusy(false);
+    }
+  }
+
   return (
     <div className="App">
       <header className="navbar">
@@ -218,6 +255,8 @@ function App() {
           isRolling={isRolling}
           mappingActive={mappingActive}
           onToggleMapping={() => setMappingActive((v) => !v)}
+          onAutoDetect={handleAutoDetect}
+          autoDetectBusy={autoDetectBusy}
         />
       </footer>
     </div>

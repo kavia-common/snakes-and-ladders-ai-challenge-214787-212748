@@ -27,6 +27,8 @@ export default function Controls({
   isRolling,
   mappingActive = false,
   onToggleMapping,
+  onAutoDetect, // new optional handler
+  autoDetectBusy = false, // status
 }) {
   return (
     <div className="controls">
@@ -57,6 +59,16 @@ export default function Controls({
         <div>Last Roll: {lastRoll ?? "-"}</div>
         <div>Human Position: {humanCell}</div>
         <div>AI Position: {aiCell}</div>
+        <div className="spacer" />
+        <button
+          className="btn secondary"
+          onClick={onAutoDetect}
+          disabled={autoDetectBusy}
+          aria-disabled={autoDetectBusy}
+          title="Auto-detect mapping from board image"
+        >
+          {autoDetectBusy ? "Auto-detecting..." : "Auto-detect mapping from board image"}
+        </button>
       </div>
     </div>
   );
