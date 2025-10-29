@@ -3,6 +3,7 @@ import "./App.css";
 import Board from "./components/Board";
 import Controls from "./components/Controls";
 import ChatPanel from "./components/ChatPanel";
+import MappingMode from "./components/MappingMode";
 import {
   resolveSnakesAndLadders,
   ladders,
@@ -32,6 +33,11 @@ function App() {
     { id: "m1", sender: "AI", text: "I’m ready to win. Try to keep up." },
   ]);
   const msgIdRef = useRef(2);
+
+  // Mapping mode
+  const [mappingActive, setMappingActive] = useState(false);
+  const boardRectRef = useRef(null);
+  const boardElRef = useRef(null);
 
   // Apply theme attribute
   useEffect(() => {
@@ -150,6 +156,19 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTurn]);
 
+  const handleBoardRect = (r) => {
+    boardRectRef.current = r;
+  };
+
+  // Expose board element: we will query via document since Board doesn't expose ref directly.
+  const getBoardElement = () => {
+    if (boardElRef.current) return boardElRef.current;
+    // The Board root is the element with role="img" and aria-label="Snakes and Ladders Board"
+    const el = document.querySelector('[role="img"][aria-label="Snakes and Ladders Board"]');
+    boardElRef.current = el;
+    return el;
+  };
+
   return (
     <div className="App">
       <header className="navbar">
@@ -169,10 +188,22 @@ function App() {
 
       <main className="layout">
         <section className="board-area">
-          <Board />
+          <Board onRectChange={handleBoardRect} />
         </section>
         <section className="chat-area">
-          <ChatPanel messages={messages} />
+          {mappingActive ? (
+            <MappingMode
+              active={mappingActive}
+              boardRect={boardRectRef.current}
+              getBoardElement={getBoardElement}
+              onSaved={() => {
+                // No reload required; config reads from localStorage each import.
+                // We keep gameplay running; next moves will use updated resolve function.
+              }}
+            />
+          ) : (
+            <ChatPanel messages={messages} />
+          )}
         </section>
       </main>
 
@@ -185,6 +216,8 @@ function App() {
           onRoll={handleRoll}
           onNewGame={handleNewGame}
           isRolling={isRolling}
+          mappingActive={mappingActive}
+          onToggleMapping={() => setMappingActive((v) => !v)}
         />
       </footer>
     </div>

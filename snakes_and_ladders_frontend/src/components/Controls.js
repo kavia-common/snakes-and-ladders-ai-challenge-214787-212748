@@ -14,6 +14,8 @@ import React from "react";
  * - onRoll: () => void
  * - onNewGame: () => void
  * - isRolling: boolean
+ * - mappingActive: boolean
+ * - onToggleMapping: () => void
  */
 export default function Controls({
   currentTurn,
@@ -23,6 +25,8 @@ export default function Controls({
   onRoll,
   onNewGame,
   isRolling,
+  mappingActive = false,
+  onToggleMapping,
 }) {
   return (
     <div className="controls">
@@ -34,6 +38,9 @@ export default function Controls({
           AI Turn
         </div>
         <div className="spacer" />
+        <button className={`btn ${mappingActive ? "primary" : "secondary"}`} onClick={onToggleMapping}>
+          {mappingActive ? "Exit Mapping Mode" : "Mapping Mode"}
+        </button>
         <button className="btn secondary" onClick={onNewGame} disabled={isRolling}>
           New Game
         </button>

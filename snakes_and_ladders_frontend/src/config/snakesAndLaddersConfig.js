@@ -1,3 +1,4 @@
+import { loadMappingFromLocalStorage } from "../utils/boardMapping";
 //
 // PUBLIC_INTERFACE
 // snakesAndLaddersConfig.js
@@ -76,20 +77,10 @@ export function getCellCenterForRect(cell, rect) {
 }
 
 /**
- * Snakes and ladders mapping based on the provided board image.
- * These mappings were chosen to align with a typical snakes-and-ladders layout
- * that matches the attached image style. If a later verification reveals different
- * endpoints, adjust these pairs accordingly.
- *
- * Conventions:
- * - ladders: baseCell -> topCell (base < top)
- * - snakes: headCell -> tailCell (head > tail)
- *
- * The set below represents a coherent playable mapping for a 100-cell board:
+ * Default snakes and ladders mapping (fallback).
  */
-
 // PUBLIC_INTERFACE
-export const ladders = {
+const defaultLadders = {
   2: 38,
   4: 14,
   8: 31,
@@ -102,7 +93,7 @@ export const ladders = {
 };
 
 // PUBLIC_INTERFACE
-export const snakes = {
+const defaultSnakes = {
   16: 6,
   47: 26,
   49: 11,
@@ -114,6 +105,23 @@ export const snakes = {
   95: 75,
   98: 78,
 };
+
+// Load dynamic mapping if present in localStorage
+const lsMapping = (() => {
+  try {
+    return loadMappingFromLocalStorage();
+  } catch {
+    return null;
+  }
+})();
+
+const activeLadders = (lsMapping && lsMapping.ladders) ? lsMapping.ladders : defaultLadders;
+const activeSnakes = (lsMapping && lsMapping.snakes) ? lsMapping.snakes : defaultSnakes;
+
+// PUBLIC_INTERFACE
+export const ladders = activeLadders;
+// PUBLIC_INTERFACE
+export const snakes = activeSnakes;
 
 /**
  * Apply snakes and ladders transitions to a given cell. If the cell is a head/base,

@@ -7,6 +7,7 @@ import { BOARD_IMAGE_URL, BOARD_ROWS, BOARD_COLS } from "../config/snakesAndLadd
  * A purely presentational component that renders the board image as a responsive background.
  * No overlays are drawn on top of the board. Emits its bounding client rect for calculation
  * purposes, but the game UI does not render markers on the board to respect requirements.
+ * Mapping Mode attaches click listeners externally without adding overlays.
  *
  * Props:
  * - onRectChange?: (rect: {width:number,height:number,top:number,left:number}) => void
