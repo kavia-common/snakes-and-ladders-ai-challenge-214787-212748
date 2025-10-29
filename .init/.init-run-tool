@@ -1,0 +1,4 @@
+{
+    "command": "PORT=<port> HOST=<host> BROWSER=none npm start",
+    "working_directory": "/home/kavia/workspace/code-generation/snakes-and-ladders-ai-challenge-214787-212748/snakes_and_ladders_frontend"
+}
